@@ -1,0 +1,70 @@
+---
+version: '3'
+services:
+  db:
+    image: postgres:9
+    volumes:
+      - pgdb-data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/1-init.sql
+    restart: always
+    ports:
+      - "6432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+
+  coreantigo:
+    depends_on:
+      - db
+    build:
+      context: core-antigo
+      dockerfile: ../Dockerfile
+    command: ./mvnw spring-boot:run
+    ports:
+      - "8010:8010"
+    volumes:
+      - $HOME/.m2:/root/.m2
+      - ./core-antigo:/opt/app
+
+  corenovo:
+    depends_on:
+      - db
+    build:
+      context: core-novo
+      dockerfile: ../Dockerfile
+    command: ./mvnw spring-boot:run
+    ports:
+      - "8020:8020"
+    volumes:
+      - $HOME/.m2:/root/.m2
+      - ./core-novo:/opt/app
+
+  core:
+    depends_on:
+      - db
+    build:
+      context: core
+      dockerfile: ../Dockerfile
+    command: ./mvnw spring-boot:run
+    ports:
+      - "8000:8000"
+    volumes:
+      - $HOME/.m2:/root/.m2
+      - ./core:/opt/app
+    links:
+      - db
+
+  web:
+    depends_on:
+      - core
+    build:
+      context: web
+      dockerfile: ../Dockerfile-node
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/opt/app
+
+volumes:
+  pgdb-data:
